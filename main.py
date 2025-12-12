@@ -65,12 +65,16 @@ def create_auditoria(auditoria: schemas.AuditoriaCreate,
     db: Session = Depends(get_db),
     user: User = Security(azure_scheme)):
 
-    email_usuario = user.get_claim("preferred_username")
-    nombre_usuario = user.get_claim("name")
+    email_usuario = user.claims.get("preferred_username")
+    nombre_usuario = user.claims.get("name")
+
+    
 
     print(f'Usuario autenticado: {nombre_usuario} ({email_usuario})')
 
-    db_auditor = db.query(models.Auditor).filter(models.Auditor.aud_user == auditoria.user_aud).first()
+    db_auditor = db.query(models.Auditor).filter(email_usuario == auditoria.user_aud).first()
+    print(db_auditor)
+    auditoria.user_aud = auditoria.user_aud[:auditoria.user_aud.find('@')].lower()
     if not db_auditor:
         raise HTTPException(status_code=400, detail="Auditor no existe")
     db_auditoria = models.Auditoria(**auditoria.dict())
