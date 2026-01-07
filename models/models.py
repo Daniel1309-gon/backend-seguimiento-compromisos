@@ -40,14 +40,14 @@ class OpMejora(Base):
 
 
     auditoria_rel = relationship("Auditoria", back_populates="mejoras")
-    compromisos = relationship("Compromiso", back_populates="mejora_rel", cascade="all, delete-orphan")
+    compromisos = relationship("Compromiso", back_populates="mejora_rel", cascade="all, delete-orphan", uselist=False)
 
 class Compromiso(Base):
     __tablename__ = 'compromiso'
 
     id_com = Column(Integer, primary_key=True, index=True)
     
-    op_id = Column(Integer, ForeignKey('op_mejora.id_op'), nullable=False)
+    op_id = Column(Integer, ForeignKey('op_mejora.id_op'), nullable=False, unique=True)
 
     action = Column(Text, nullable=False)
 

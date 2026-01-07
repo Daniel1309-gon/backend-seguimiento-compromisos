@@ -17,16 +17,14 @@ class Compromiso(CompromisoBase):
     class Config:
         from_attribute = True
 
-class OpMejoraBase(BaseModel):
+
+class OpMejoraCreate(BaseModel):
     description: str
 
-class OpMejoraCreate(OpMejoraBase):
-    pass
-
-class OpMejora(OpMejoraBase):
+class OpMejora(OpMejoraCreate):
     id_op: int
     aud_id: int
-    compromisos: List[Compromiso] = []
+    compromisos: Optional[Compromiso] = None
 
     class Config:
         from_attribute = True
@@ -60,3 +58,5 @@ class Auditor(AuditorBase):
 
     class Config:
         from_attribute = True
+
+
