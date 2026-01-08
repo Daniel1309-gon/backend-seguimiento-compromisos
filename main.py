@@ -53,7 +53,7 @@ def get_db():
 
 
 @app.post("/auditors/", response_model=schemas.Auditor)
-def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db)):
+def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     db_auditor = models.Auditor(**auditor.dict())
     db.add(db_auditor)
     db.commit()
@@ -62,7 +62,7 @@ def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db)
 
 
 @app.get("/auditors/", response_model=List[schemas.Auditor])
-def read_auditors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_auditors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     auditors = db.query(models.Auditor).offset(skip).limit(limit).all()
     return auditors
 
@@ -106,28 +106,31 @@ def get_auditorias(
 
 @app.post("/mejoras/{op_id}/compromisos/", response_model=schemas.Compromiso)
 def create_compromiso(
-    compromiso: schemas.CompromisoCreate, 
-    op_id: int, 
+    compromiso: schemas.CompromisoCreate,
+    op_id: int,
     db: Session = Depends(get_db),
-    user = Security(azure_scheme)
+    user=Security(azure_scheme),
 ):
     db_mejora = db.query(models.OpMejora).filter(models.OpMejora.id_op == op_id).first()
     if not db_mejora:
-        raise HTTPException(status_code=404, detail="Oportunidad de mejora no encontrada")
-    
+        raise HTTPException(
+            status_code=404, detail="Oportunidad de mejora no encontrada"
+        )
+
     if db_mejora.compromisos:
-        raise HTTPException(status_code=400, detail="Ya existe un compromiso para esta oportunidad de mejora")
+        raise HTTPException(
+            status_code=400,
+            detail="Ya existe un compromiso para esta oportunidad de mejora",
+        )
 
     db_compromiso = models.Compromiso(
-        action = compromiso.action,
-        deadline = compromiso.deadline,
-        op_id = op_id
+        action=compromiso.action, deadline=compromiso.deadline, op_id=op_id
     )
 
     db.add(db_compromiso)
     db.commit()
     db.refresh(db_compromiso)
-    
+
     return db_compromiso
 
 
@@ -170,3 +173,56 @@ def create_op_mejora(
     db.commit()
     db.refresh(db_mejora)
     return db_mejora
+
+
+@app.delete("/auditorias/{id_auditoria}", response_model=schemas.Auditoria)
+def delete_auditoria(
+    id_auditoria: int,
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme),
+):
+    item_db = (
+        db.query(models.Auditoria)
+        .filter(models.Auditoria.id_aud == id_auditoria)
+        .first()
+    )
+    if not item_db:
+        raise HTTPException(status_code=404, detail="Auditoría no encontrada")
+
+    db.delete(item_db)
+    db.commit()
+    return item_db, {"ok": True}
+
+
+@app.delete("/mejoras/{op_id}", response_model=schemas.OpMejora)
+def delete_op_mejora(
+    op_id: int, db: Session = Depends(get_db), user: User = Security(azure_scheme)
+):
+    item_db = db.query(models.OpMejora).filter(models.OpMejora.id_op == op_id).first()
+    if not item_db:
+        raise HTTPException(
+            status_code=404, detail="Oportunidad de mejora no encontrada"
+        )
+
+    db.delete(item_db)
+    db.commit()
+    return item_db, {"ok": True}
+
+
+@app.delete("/compromisos/{compromiso_id}", response_model=schemas.Compromiso)
+def delete_compromiso(
+    compromiso_id: int,
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme),
+):
+    item_db = (
+        db.query(models.Compromiso)
+        .filter(models.Compromiso.id_com == compromiso_id)
+        .first()
+    )
+    if not item_db:
+        raise HTTPException(status_code=404, detail="Compromiso no encontrado")
+
+    db.delete(item_db)
+    db.commit()
+    return item_db, {"ok": True}
