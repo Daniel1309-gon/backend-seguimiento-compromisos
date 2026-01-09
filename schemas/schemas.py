@@ -37,6 +37,7 @@ class AuditoriaBase(BaseModel):
 
 class AuditoriaCreate(AuditoriaBase):
     user_aud: str
+    date_onbase: date
 
 class Auditoria(AuditoriaBase):
     id_aud: int
