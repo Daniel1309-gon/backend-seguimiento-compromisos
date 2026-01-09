@@ -80,12 +80,14 @@ def create_auditoria(
     print(f"Usuario autenticado: {nombre_usuario} ({email_usuario})")
 
     db_auditor = (
-        db.query(models.Auditor).filter(email_usuario == auditoria.user_aud).first()
+        db.query(models.Auditor).filter(models.Auditor.aud_user == auditoria.user_aud).first()
     )
     print(db_auditor)
-    auditoria.user_aud = auditoria.user_aud[: auditoria.user_aud.find("@")].lower()
+    #auditoria.user_aud = auditoria.user_aud[: auditoria.user_aud.find("@")].lower()
+
     if not db_auditor:
         raise HTTPException(status_code=400, detail="Auditor no existe")
+
     db_auditoria = models.Auditoria(**auditoria.dict())
     db.add(db_auditoria)
     db.commit()
@@ -226,3 +228,31 @@ def delete_compromiso(
     db.delete(item_db)
     db.commit()
     return item_db, {"ok": True}
+
+@app.patch("/compromisos/{compromiso_id}", response_model=schemas.Compromiso)
+def update_compromiso(
+    compromiso_id: int,
+    compromiso_update: schemas.CompromisoUpdate,
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme),
+):
+    db_compromiso = (
+        db.query(models.Compromiso)
+        .filter(models.Compromiso.id_com == compromiso_id)
+        .first()
+    )
+    if not db_compromiso:
+        raise HTTPException(status_code=404, detail="Compromiso no encontrado")
+
+    update_data = compromiso_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_compromiso, key, value)
+
+    db.add(db_compromiso)
+    db.commit()
+    db.refresh(db_compromiso)
+    return db_compromiso
+
+@app.get("/auditores/", response_model=List[schemas.Auditor])
+def get_auditores(db: Session = Depends(get_db), user: User = Security(azure_scheme)):
+    return db.query(models.Auditor).all()

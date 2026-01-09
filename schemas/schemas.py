@@ -33,6 +33,7 @@ class AuditoriaBase(BaseModel):
     topic: str
     area: str
     radicate_onbase: str
+    user_aud: str
 
 class AuditoriaCreate(AuditoriaBase):
     user_aud: str
@@ -60,3 +61,7 @@ class Auditor(AuditorBase):
         from_attribute = True
 
 
+class CompromisoUpdate(BaseModel):
+    action: Optional[str] = None
+    deadline: Optional[date] = None
+    estado: Optional[str] = None
