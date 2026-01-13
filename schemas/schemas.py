@@ -66,3 +66,12 @@ class CompromisoUpdate(BaseModel):
     action: Optional[str] = None
     deadline: Optional[date] = None
     estado: Optional[str] = None
+
+
+class StatsData(BaseModel):
+    total_auditorias: int
+    por_auditor: dict[str, int]
+    por_area: dict[str, int]
+    por_semestre: dict[str, int]
+    por_tema: dict[str, int]
+    por_estado_mejora: dict[str, int]

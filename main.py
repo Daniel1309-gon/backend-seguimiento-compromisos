@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Security
 from sqlalchemy.orm import Session
+from sqlalchemy import case, func, extract
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_azure_auth.user import User
@@ -33,6 +34,7 @@ app = FastAPI(
 
 origins = [
     "http://localhost:3000",
+    "http://192.168.56.1:3000"
 ]
 
 app.add_middleware(
@@ -256,3 +258,30 @@ def update_compromiso(
 @app.get("/auditores/", response_model=List[schemas.Auditor])
 def get_auditores(db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     return db.query(models.Auditor).all()
+
+@app.get("/stats/general/", response_model=schemas.StatsData)
+def get_general_stats( db: Session = Depends(get_db), user: User = Security(azure_scheme)):
+    
+    total_auditorias = db.query(models.Auditoria).count()
+
+    auditor_stats = db.query(models.Auditoria.user_aud, func.count(models.Auditoria.id_aud)).group_by(models.Auditoria.user_aud).all()
+
+    area_stats = db.query(models.Auditoria.area, func.count(models.Auditoria.id_aud)).group_by(models.Auditoria.area).all()
+
+    semestre = case(
+    (extract('month', models.Auditoria.date_onbase) <= 6, 1),else_=2).label("semestre")
+
+    semestre_stats = db.query(extract('year', models.Auditoria.date_onbase).label('year'),semestre,func.count(models.Auditoria.id_aud)).group_by('year', 'semestre').all()
+
+    tema_stats = db.query(models.Auditoria.topic, func.count(models.Auditoria.id_aud)).group_by(models.Auditoria.topic).order_by(func.count(models.Auditoria.id_aud).desc()).limit(5).all()
+
+    estado_mejora_stats = db.query(models.Compromiso.estado, func.count(models.Compromiso.id_com)).group_by(models.Compromiso.estado).all()
+
+    return schemas.StatsData(
+        total_auditorias=total_auditorias,
+        por_auditor={auditor: count for auditor, count in auditor_stats},
+        por_area={area: count for area, count in area_stats},
+        por_semestre={f"{year}-{sem}": count for year, sem, count in semestre_stats},
+        por_tema={tema: count for tema, count in tema_stats},
+        por_estado_mejora={estado: count for estado, count in estado_mejora_stats},
+    )
