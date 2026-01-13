@@ -59,3 +59,23 @@ class Compromiso(Base):
     estado = Column(String(20), nullable=False, server_default=text("'En proceso'"))
 
     mejora_rel = relationship("OpMejora", back_populates="compromisos")
+
+
+class SystemLog(Base):
+    __tablename__ = 'system_logs'
+
+    id = Column(Integer, primary_key=True, index=True)
+    table_name = Column(String(50), nullable=False)
+    action = Column(String(10), nullable=False)  # INSERT, UPDATE, DELETE
+    record_id = Column(String(50), nullable=False)
+    old_data = Column(Text)      # Datos antes del cambio (JSON)
+    new_data = Column(Text)      # Datos nuevos (JSON)
+    changed_at = Column(Date, 
+    nullable=False,
+    server_default=text("(NOW() AT TIME ZONE 'America/Bogota')")
+    )
+    app_user = Column(String(100))  # Usuario de la APP que hizo el cambio
+    db_user = Column(String(50), 
+    nullable=False,
+    server_default=text("current_user")
+    )  # Usuario de BD (postgres)

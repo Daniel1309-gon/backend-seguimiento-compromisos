@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     AZURE_APP_URI: str
     SCOPE_NAME: str = "access_as_user"
     FULL_SCOPE_URI: str
+    ADMIN_USER_PASANTE: str
+    ADMIN_USER_AUDITOR: str
 
     @property
     def database_url(self) -> str:

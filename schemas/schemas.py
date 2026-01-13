@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 
 class CompromisoBase(BaseModel):
     action: str
@@ -75,3 +75,17 @@ class StatsData(BaseModel):
     por_semestre: dict[str, int]
     por_tema: dict[str, int]
     por_estado_mejora: dict[str, int]
+
+class SystemLog(BaseModel):
+    id: int
+    table_name: str
+    action: str
+    record_id: str
+    old_data: Optional[str] = None
+    new_data: Optional[str] = None
+    changed_at: datetime
+    app_user: Optional[str] = None
+    db_user: str
+
+    class Config:
+        from_attributes = True

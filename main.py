@@ -53,14 +53,35 @@ def get_db():
     finally:
         db.close()
 
+ADMIN_EMAILS = [settings.ADMIN_USER_AUDITOR, settings.ADMIN_USER_PASANTE]
+
+def get_current_admin(user: User = Security(azure_scheme)):
+    if user.claims.get("preferred_username").lower() not in [a.lower() for a in ADMIN_EMAILS]:
+        raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
+    return user
+
+@app.get("/admin/logs/", response_model=List[schemas.SystemLog])
+def get_system_logs(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), userAdmin: User = Depends(get_current_admin), user = Security(azure_scheme)):
+    logs = db.query(models.SystemLog).order_by(models.SystemLog.id.desc()).offset(skip).limit(limit).all()
+    return logs
 
 @app.post("/auditors/", response_model=schemas.Auditor)
-def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
+def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db), user: User = Security(azure_scheme), userAdmin: User = Depends(get_current_admin)):
     db_auditor = models.Auditor(**auditor.dict())
     db.add(db_auditor)
     db.commit()
     db.refresh(db_auditor)
     return db_auditor
+
+@app.delete("/auditors/{aud_user}", response_model=schemas.Auditor)
+def delete_auditor(aud_user: str, db: Session = Depends(get_db), userAdmin: User = Depends(get_current_admin), user: User = Security(azure_scheme)):
+    auditor_db = db.query(models.Auditor).filter(models.Auditor.aud_user == aud_user).first()
+    if not auditor_db:
+        raise HTTPException(status_code=404, detail="Auditor no encontrado")
+
+    db.delete(auditor_db)
+    db.commit()
+    return auditor_db
 
 
 @app.get("/auditors/", response_model=List[schemas.Auditor])
@@ -285,3 +306,5 @@ def get_general_stats( db: Session = Depends(get_db), user: User = Security(azur
         por_tema={tema: count for tema, count in tema_stats},
         por_estado_mejora={estado: count for estado, count in estado_mejora_stats},
     )
+
+
