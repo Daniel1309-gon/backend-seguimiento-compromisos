@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Security
 from sqlalchemy.orm import Session
-from sqlalchemy import case, func, extract
+from sqlalchemy import case, func, extract, text
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_azure_auth.user import User
@@ -55,10 +55,13 @@ def get_db():
 
 ADMIN_EMAILS = [settings.ADMIN_USER_AUDITOR, settings.ADMIN_USER_PASANTE]
 
-def get_current_admin(user: User = Security(azure_scheme)):
-    if user.claims.get("preferred_username").lower() not in [a.lower() for a in ADMIN_EMAILS]:
+def get_current_admin(db: Session = Depends(get_db), user: User = Security(azure_scheme)):
+    user_email = user.claims.get("preferred_username")
+    username = user_email.split("@")[0]
+    if user_email.lower() not in [a.lower() for a in ADMIN_EMAILS]:
         raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
-    return user
+    db.execute(text("SELECT set_config('app.current_user', :app_user, true)"), {'app_user': username})
+    return username
 
 @app.get("/admin/logs/", response_model=List[schemas.SystemLog])
 def get_system_logs(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), userAdmin: User = Depends(get_current_admin), user = Security(azure_scheme)):
@@ -66,7 +69,7 @@ def get_system_logs(skip: int = 0, limit: int = 10, db: Session = Depends(get_db
     return logs
 
 @app.post("/auditors/", response_model=schemas.Auditor)
-def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db), user: User = Security(azure_scheme), userAdmin: User = Depends(get_current_admin)):
+def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db), user: User = Security(azure_scheme), userAdmin: User = Depends(get_current_admin), current_admin_username: str = Depends(get_current_admin)):
     db_auditor = models.Auditor(**auditor.dict())
     db.add(db_auditor)
     db.commit()
@@ -74,7 +77,7 @@ def create_auditor(auditor: schemas.AuditorCreate, db: Session = Depends(get_db)
     return db_auditor
 
 @app.delete("/auditors/{aud_user}", response_model=schemas.Auditor)
-def delete_auditor(aud_user: str, db: Session = Depends(get_db), userAdmin: User = Depends(get_current_admin), user: User = Security(azure_scheme)):
+def delete_auditor(aud_user: str, db: Session = Depends(get_db), userAdmin: User = Depends(get_current_admin), user: User = Security(azure_scheme), current_admin_username: str = Depends(get_current_admin)):
     auditor_db = db.query(models.Auditor).filter(models.Auditor.aud_user == aud_user).first()
     if not auditor_db:
         raise HTTPException(status_code=404, detail="Auditor no encontrado")
@@ -95,8 +98,8 @@ def create_auditoria(
     auditoria: schemas.AuditoriaCreate,
     db: Session = Depends(get_db),
     user: User = Security(azure_scheme),
+    current_admin_username: str = Depends(get_current_admin)
 ):
-
     email_usuario = user.claims.get("preferred_username")
     nombre_usuario = user.claims.get("name")
 
@@ -135,6 +138,7 @@ def create_compromiso(
     op_id: int,
     db: Session = Depends(get_db),
     user=Security(azure_scheme),
+    current_admin_username: str = Depends(get_current_admin)
 ):
     db_mejora = db.query(models.OpMejora).filter(models.OpMejora.id_op == op_id).first()
     if not db_mejora:
@@ -183,6 +187,7 @@ def create_op_mejora(
     op_mejora: schemas.OpMejoraCreate,
     db: Session = Depends(get_db),
     user: User = Security(azure_scheme),
+    current_admin_username: str = Depends(get_current_admin)
 ):
     db_auditoria = (
         db.query(models.Auditoria)
@@ -205,7 +210,9 @@ def delete_auditoria(
     id_auditoria: int,
     db: Session = Depends(get_db),
     user: User = Security(azure_scheme),
+    current_admin_username: str = Depends(get_current_admin)
 ):
+
     item_db = (
         db.query(models.Auditoria)
         .filter(models.Auditoria.id_aud == id_auditoria)
@@ -221,7 +228,7 @@ def delete_auditoria(
 
 @app.delete("/mejoras/{op_id}", response_model=schemas.OpMejora)
 def delete_op_mejora(
-    op_id: int, db: Session = Depends(get_db), user: User = Security(azure_scheme)
+    op_id: int, db: Session = Depends(get_db), user: User = Security(azure_scheme), current_admin_username: str = Depends(get_current_admin)
 ):
     item_db = db.query(models.OpMejora).filter(models.OpMejora.id_op == op_id).first()
     if not item_db:
@@ -239,6 +246,7 @@ def delete_compromiso(
     compromiso_id: int,
     db: Session = Depends(get_db),
     user: User = Security(azure_scheme),
+    current_admin_username: str = Depends(get_current_admin)
 ):
     item_db = (
         db.query(models.Compromiso)
@@ -258,6 +266,7 @@ def update_compromiso(
     compromiso_update: schemas.CompromisoUpdate,
     db: Session = Depends(get_db),
     user: User = Security(azure_scheme),
+    current_admin_username: str = Depends(get_current_admin)
 ):
     db_compromiso = (
         db.query(models.Compromiso)
