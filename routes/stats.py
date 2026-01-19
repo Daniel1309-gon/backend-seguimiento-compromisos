@@ -6,10 +6,13 @@ import models.models as models
 import schemas.schemas as schemas
 from auth import azure_scheme
 from dependencies import get_db
+from fastapi_cache.decorator import cache
+from fastapi_limiter.depends import RateLimiter
 
 router = APIRouter(prefix="/stats", tags=["Estadísticas"])
 
-@router.get("/general/", response_model=schemas.StatsData)
+@router.get("/general/", response_model=schemas.StatsData, dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@cache(expire=30)
 def get_general_stats( db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     
     total_auditorias = db.query(models.Auditoria).count()

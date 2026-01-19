@@ -20,10 +20,16 @@ def get_db():
 def get_current_admin(db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     # Lógica segura para obtener el username
     full_email = user.claims.get("preferred_username") or "unknown@domain"
-    username = full_email.split("@")[0]
     
     if full_email.lower() not in [a.lower() for a in ADMIN_EMAILS]:
         raise HTTPException(status_code=403, detail="No tienes permisos de administrador")
+    
+
+    return {'username': full_email.split("@")[0]}
+
+def inject_current_user(db: Session = Depends(get_db), user: User = Security(azure_scheme)):
+    full_email = user.claims.get("preferred_username") or "unknown@domain"
+    username = full_email.split("@")[0]
     
     # Inyección de contexto para PostgreSQL (Logs)
     db.execute(

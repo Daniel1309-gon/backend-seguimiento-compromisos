@@ -12,12 +12,28 @@ from auth import azure_scheme
 from contextlib import asynccontextmanager
 from routes import auditorias, auditors, compromisos, stats, admin, mejoras
 
+import redis.asyncio as redis
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+
+from fastapi_limiter import FastAPILimiter
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await azure_scheme.openid_config.load_config()
+
+    redis_connection = redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
+    FastAPICache.init(RedisBackend(redis_connection), prefix="fastapi-cache")
+
+    await FastAPILimiter.init(redis_connection)
+
+    print("Conectado a Redis para rate limiting y caching")
+
     yield
 
+    await redis_connection.close()
+    print("Desconectado de Redis")
 
 models.Base.metadata.create_all(bind=database.engine)
 
