@@ -23,7 +23,11 @@ from fastapi_limiter import FastAPILimiter
 async def lifespan(app: FastAPI):
     await azure_scheme.openid_config.load_config()
 
-    redis_connection = redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
+    redis_connection = redis.from_url(settings.REDIS_URL, 
+    password=settings.REDIS_PASSWORD if settings.REDIS_PASSWORD else None,
+    encoding="utf8", 
+    decode_responses=True,
+    )
     FastAPICache.init(RedisBackend(redis_connection), prefix="fastapi-cache")
 
     await FastAPILimiter.init(redis_connection)

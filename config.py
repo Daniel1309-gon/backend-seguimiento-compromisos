@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     ADMIN_USER_PASANTE: str
     ADMIN_USER_AUDITOR: str
 
+    REDIS_URL: str
+    REDIS_PASSWORD: str | None = None
+
     @property
     def database_url(self) -> str:
         return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
