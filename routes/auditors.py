@@ -8,6 +8,7 @@ import schemas.schemas as schemas
 from auth import azure_scheme
 from dependencies import get_db, get_current_admin
 from fastapi_limiter.depends import RateLimiter
+from fastapi_cache.decorator import cache
 
 router = APIRouter(
     prefix="/auditors",
@@ -46,6 +47,7 @@ def delete_auditor(
 
 
 @router.get("/", response_model=List[schemas.Auditor], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@cache(expire=60)
 def read_auditors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     auditors = db.query(models.Auditor).offset(skip).limit(limit).all()
     return auditors
