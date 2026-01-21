@@ -32,7 +32,7 @@ def create_op_mejora(
     db.refresh(db_mejora)
     return db_mejora
 
-@router.delete("/mejoras/{op_id}", response_model=schemas.OpMejora, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.delete("/mejoras/{op_id}/", response_model=schemas.OpMejora, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def delete_op_mejora(
     op_id: int, 
     db: Session = Depends(get_db), 

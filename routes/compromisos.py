@@ -49,7 +49,7 @@ def read_compromisos(skip: int = 0, limit: int = 10, db: Session = Depends(get_d
     return compromisos
 
 
-@router.delete("/compromisos/{compromiso_id}", response_model=schemas.Compromiso, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.delete("/compromisos/{compromiso_id}/", response_model=schemas.Compromiso, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def delete_compromiso(
     compromiso_id: int,
     db: Session = Depends(get_db),
@@ -68,7 +68,7 @@ def delete_compromiso(
     db.commit()
     return item_db, {"ok": True}
 
-@router.patch("/compromisos/{compromiso_id}", response_model=schemas.Compromiso, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.patch("/compromisos/{compromiso_id}/", response_model=schemas.Compromiso, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def update_compromiso(
     compromiso_id: int,
     compromiso_update: schemas.CompromisoUpdate,

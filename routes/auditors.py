@@ -28,7 +28,7 @@ def create_auditor(
     db.refresh(db_auditor)
     return db_auditor
 
-@router.delete("/{aud_user}", response_model=schemas.Auditor, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.delete("/{aud_user}/", response_model=schemas.Auditor, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def delete_auditor(
     aud_user: str,
     db: Session = Depends(get_db), 

@@ -42,7 +42,7 @@ def get_auditorias(
     auditorias = db.query(models.Auditoria).offset(skip).limit(limit).all()
     return auditorias
 
-@router.get("/{auditoria_id}", response_model=schemas.Auditoria, dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@router.get("/{auditoria_id}/", response_model=schemas.Auditoria, dependencies=[Depends(RateLimiter(times=20, seconds=60))])
 def read_auditoria(auditoria_id: int, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     db_auditoria = (
         db.query(models.Auditoria)
@@ -56,7 +56,7 @@ def read_auditoria(auditoria_id: int, db: Session = Depends(get_db), user: User 
 
 
 
-@router.delete("/{id_auditoria}", response_model=schemas.Auditoria, dependencies=[Depends(RateLimiter(times=1, seconds=60))])
+@router.delete("/{id_auditoria}/", response_model=schemas.Auditoria, dependencies=[Depends(RateLimiter(times=1, seconds=60))])
 def delete_auditoria(
     id_auditoria: int,
     db: Session = Depends(get_db),
