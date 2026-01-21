@@ -44,7 +44,6 @@ def create_compromiso(
 
 
 @router.get("/compromisos/", response_model=List[schemas.Compromiso], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
-@cache(expire=15)
 def read_compromisos(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     compromisos = db.query(models.Compromiso).offset(skip).limit(limit).all()
     return compromisos

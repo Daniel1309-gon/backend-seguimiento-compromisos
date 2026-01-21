@@ -19,7 +19,7 @@ router = APIRouter(
     response_model=List[schemas.SystemLog], 
     dependencies=[Depends(RateLimiter(times=5, seconds=60))]
     )
-@cache(expire=10)
+@cache(expire=5)
 def get_system_logs(skip: int = 0, 
     limit: int = 10, 
     db: Session = Depends(get_db), 

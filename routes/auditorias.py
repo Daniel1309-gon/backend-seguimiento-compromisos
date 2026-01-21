@@ -33,7 +33,6 @@ def create_auditoria(
     return db_auditoria
 
 @router.get("/", response_model=List[schemas.Auditoria], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
-@cache(expire=15)
 def get_auditorias(
     skip: int = 0,
     limit: int = 100,
@@ -44,7 +43,6 @@ def get_auditorias(
     return auditorias
 
 @router.get("/{auditoria_id}", response_model=schemas.Auditoria, dependencies=[Depends(RateLimiter(times=10, seconds=60))])
-@cache(expire=15)
 def read_auditoria(auditoria_id: int, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     db_auditoria = (
         db.query(models.Auditoria)

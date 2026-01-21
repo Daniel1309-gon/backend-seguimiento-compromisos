@@ -1,5 +1,5 @@
 from dependencies import inject_current_user
-from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, Security, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi_azure_auth.user import User
@@ -17,7 +17,7 @@ router = APIRouter(
 
 @router.post("/", response_model=schemas.Auditor, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def create_auditor(
-    auditor: schemas.AuditorCreate, 
+    auditor: schemas.AuditorCreate,
     db: Session = Depends(get_db), 
     user: User = Security(azure_scheme), 
     userAdmin: User = Depends(get_current_admin)):
@@ -30,7 +30,7 @@ def create_auditor(
 
 @router.delete("/{aud_user}", response_model=schemas.Auditor, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def delete_auditor(
-    aud_user: str, 
+    aud_user: str,
     db: Session = Depends(get_db), 
     userAdmin: User = Depends(get_current_admin), 
     user: User = Security(azure_scheme)
@@ -47,7 +47,7 @@ def delete_auditor(
 
 
 @router.get("/", response_model=List[schemas.Auditor], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
-@cache(expire=60)
+@cache(expire=30)
 def read_auditors(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     auditors = db.query(models.Auditor).offset(skip).limit(limit).all()
     return auditors
