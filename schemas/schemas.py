@@ -89,3 +89,16 @@ class SystemLog(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SeguimientoCreate(BaseModel):
+    observation: str = Field(..., min_length=1, max_length=1000)
+
+class Seguimiento(SeguimientoCreate):
+    id_seg: int
+    com_id: int
+    created_by: str
+    created_at: date
+    
+
+    class Config:
+        from_attributes = True

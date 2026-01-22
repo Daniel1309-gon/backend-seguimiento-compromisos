@@ -5,17 +5,18 @@ from database import Base
 class Auditor(Base):
     __tablename__ = 'auditor'
 
-    aud_user = Column(String(10), primary_key=True, index=True)
+    aud_user = Column(String(20), primary_key=True, index=True)
     aud_name = Column(String(40), nullable=False)
 
     auditorias = relationship("Auditoria", back_populates="auditor_rel")
+    seguimientos = relationship("Seguimiento", back_populates="auditor_rel", cascade="all, delete-orphan")
 
 class Auditoria(Base):
     __tablename__ = 'auditoria'
 
     id_aud = Column(Integer, primary_key=True, index=True)
     
-    user_aud = Column(String(10), ForeignKey('auditor.aud_user'), nullable=False)
+    user_aud = Column(String(20), ForeignKey('auditor.aud_user'), nullable=False)
 
     topic = Column(String(40), nullable=False)
     area = Column(String(50), nullable=False)
@@ -56,9 +57,11 @@ class Compromiso(Base):
     server_default=text("(NOW() AT TIME ZONE 'America/Bogota')::DATE + INTERVAL '2 months'")
     )
     
-    estado = Column(String(20), nullable=False, server_default=text("'En proceso'"))
+    estado = Column(String(10), nullable=False, server_default=text("'En proceso'"))
 
     mejora_rel = relationship("OpMejora", back_populates="compromisos")
+
+    seguimiento_rel = relationship("Seguimiento", back_populates="compromiso_rel", cascade="all, delete-orphan")
 
 
 class SystemLog(Base):
@@ -79,3 +82,22 @@ class SystemLog(Base):
     nullable=False,
     server_default=text("current_user")
     )  # Usuario de BD (postgres)
+
+class Seguimiento(Base):
+    __tablename__ = 'seguimiento'
+
+    id_seg = Column(Integer, primary_key=True, index=True)
+    
+    com_id = Column(Integer, ForeignKey('compromiso.id_com'), nullable=False)
+
+    created_by = Column(String(20), ForeignKey('auditor.aud_user'), nullable=False)
+
+    observation = Column(Text, nullable=False)
+
+    created_at = Column(Date, 
+    nullable=False,
+    server_default=text("(NOW() AT TIME ZONE 'America/Bogota')")
+    )
+
+    compromiso_rel = relationship("Compromiso", back_populates="seguimiento_rel")
+    auditor_rel = relationship("Auditor", back_populates="seguimientos")

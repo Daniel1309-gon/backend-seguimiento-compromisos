@@ -10,7 +10,7 @@ import database
 from config import settings
 from auth import azure_scheme
 from contextlib import asynccontextmanager
-from routes import auditorias, auditors, compromisos, stats, admin, mejoras
+from routes import auditorias, auditors, compromisos, stats, admin, mejoras, follow_up
 
 import redis.asyncio as redis
 from fastapi_cache import FastAPICache
@@ -72,4 +72,5 @@ app.include_router(auditorias.router)
 app.include_router(mejoras.router)
 app.include_router(compromisos.router)
 app.include_router(stats.router)
+app.include_router(follow_up.router)
 
