@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Security, HTTPException
 from sqlalchemy.orm import Session
+from datetime import date, timedelta
 from typing import List
 from fastapi_azure_auth.user import User
 import models.models as models
@@ -47,6 +48,87 @@ def create_compromiso(
 def read_compromisos(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     compromisos = db.query(models.Compromiso).offset(skip).limit(limit).all()
     return compromisos
+
+
+@router.get("/compromisos/en-proceso/", response_model=List[schemas.CompromisoEnProceso], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+def read_compromisos_en_proceso(
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme)
+):
+    compromisos = (
+        db.query(
+            models.Compromiso,
+            models.OpMejora.description.label("op_description"),
+            models.Auditoria.id_aud,
+            models.Auditoria.topic,
+            models.Auditoria.area,
+            models.Auditoria.radicate_onbase,
+        )
+        .join(models.OpMejora, models.Compromiso.op_id == models.OpMejora.id_op)
+        .join(models.Auditoria, models.OpMejora.aud_id == models.Auditoria.id_aud)
+        .filter(models.Compromiso.estado == "En proceso")
+        .order_by(models.Compromiso.deadline.asc())
+        .all()
+    )
+
+    return [
+        schemas.CompromisoEnProceso(
+            id_com=compromiso.id_com,
+            op_id=compromiso.op_id,
+            action=compromiso.action,
+            deadline=compromiso.deadline,
+            estado=compromiso.estado,
+            op_description=op_description,
+            aud_id=id_aud,
+            topic=topic,
+            area=area,
+            radicate_onbase=radicate_onbase,
+        )
+        for compromiso, op_description, id_aud, topic, area, radicate_onbase in compromisos
+    ]
+
+
+@router.get("/compromisos/en-proceso/proximos/", response_model=List[schemas.CompromisoEnProceso], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+def read_compromisos_en_proceso_proximos(
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme)
+):
+    today = date.today()
+    next_month = today + timedelta(days=30)
+
+    compromisos = (
+        db.query(
+            models.Compromiso,
+            models.OpMejora.description.label("op_description"),
+            models.Auditoria.id_aud,
+            models.Auditoria.topic,
+            models.Auditoria.area,
+            models.Auditoria.radicate_onbase,
+        )
+        .join(models.OpMejora, models.Compromiso.op_id == models.OpMejora.id_op)
+        .join(models.Auditoria, models.OpMejora.aud_id == models.Auditoria.id_aud)
+        .filter(models.Compromiso.estado == "En proceso")
+        .filter(models.Compromiso.deadline >= today)
+        .filter(models.Compromiso.deadline <= next_month)
+        .order_by(models.Compromiso.deadline.asc())
+        .all()
+    )
+
+    return [
+        schemas.CompromisoEnProceso(
+            id_com=compromiso.id_com,
+            op_id=compromiso.op_id,
+            action=compromiso.action,
+            deadline=compromiso.deadline,
+            estado=compromiso.estado,
+            op_description=op_description,
+            aud_id=id_aud,
+            topic=topic,
+            area=area,
+            radicate_onbase=radicate_onbase,
+        )
+        for compromiso, op_description, id_aud, topic, area, radicate_onbase in compromisos
+    ]
 
 
 @router.delete("/compromisos/{compromiso_id}/", response_model=schemas.Compromiso, dependencies=[Depends(RateLimiter(times=5, seconds=60))])

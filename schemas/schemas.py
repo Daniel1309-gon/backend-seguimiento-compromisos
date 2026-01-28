@@ -102,3 +102,19 @@ class Seguimiento(SeguimientoCreate):
 
     class Config:
         from_attributes = True
+
+
+class CompromisoEnProceso(BaseModel):
+    id_com: int
+    op_id: int
+    action: str
+    deadline: date
+    estado: str
+    op_description: str
+    aud_id: int
+    topic: str
+    area: str
+    radicate_onbase: str
+
+    class Config:
+        from_attributes = True
