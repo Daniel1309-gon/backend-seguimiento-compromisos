@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Security, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
+from workalendar.america import Colombia
 from typing import List
 from fastapi_azure_auth.user import User
 import models.models as models
@@ -11,6 +12,17 @@ from fastapi_limiter.depends import RateLimiter
 from fastapi_cache.decorator import cache
 
 router = APIRouter(tags=["Compromisos"])
+
+
+def get_business_day_target(days: int) -> date:
+    calendar = Colombia()
+    current_day = date.today()
+    added_days = 0
+    while added_days < days:
+        current_day += timedelta(days=1)
+        if calendar.is_working_day(current_day):
+            added_days += 1
+    return current_day
 
 @router.post("/mejoras/{op_id}/compromisos/", response_model=schemas.Compromiso, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 
@@ -113,6 +125,48 @@ def read_compromisos_en_proceso_proximos(
         .order_by(models.Compromiso.deadline.asc())
         .all()
     )
+
+    return [
+        schemas.CompromisoEnProceso(
+            id_com=compromiso.id_com,
+            op_id=compromiso.op_id,
+            action=compromiso.action,
+            deadline=compromiso.deadline,
+            estado=compromiso.estado,
+            op_description=op_description,
+            aud_id=id_aud,
+            topic=topic,
+            area=area,
+            radicate_onbase=radicate_onbase,
+        )
+        for compromiso, op_description, id_aud, topic, area, radicate_onbase in compromisos
+    ]
+
+
+@router.get("/compromisos/en-proceso/pronto_vencimiento/", response_model=List[schemas.CompromisoEnProceso], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@cache(expire=21600)
+def read_compromisos_pronto_vencimiento(
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme)
+):
+    target_date = get_business_day_target(7)
+    compromisos = (
+        db.query(
+            models.Compromiso,
+            models.OpMejora.description,
+            models.Auditoria.id_aud,
+            models.Auditoria.topic,
+            models.Auditoria.area,
+            models.Auditoria.radicate_onbase,
+        )
+        .join(models.OpMejora, models.Compromiso.op_id == models.OpMejora.id_op)
+        .join(models.Auditoria, models.OpMejora.aud_id == models.Auditoria.id_aud)
+        .filter(models.Compromiso.estado == "En proceso")
+        .filter(models.Compromiso.deadline <= target_date)
+        .order_by(models.Compromiso.deadline.asc())
+        .all()
+    )
+
 
     return [
         schemas.CompromisoEnProceso(
