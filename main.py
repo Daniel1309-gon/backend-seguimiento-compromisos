@@ -1,9 +1,5 @@
-from fastapi import FastAPI, HTTPException, Depends, Security
-from sqlalchemy.orm import Session
-from sqlalchemy import case, func, extract, text
-from typing import List
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_azure_auth.user import User
 
 import models.models as models
 import database

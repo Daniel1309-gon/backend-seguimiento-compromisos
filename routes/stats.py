@@ -1,19 +1,29 @@
-from fastapi import APIRouter, Depends, Security
-from sqlalchemy.orm import Session
-from sqlalchemy import case, func, extract
+from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi import APIRouter, Depends, Security, HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, joinedload
+
+from io import BytesIO
+
+
+from fastapi_cache.decorator import cache
+from fastapi_limiter.depends import RateLimiter
+
+from sqlalchemy import case, extract, func
+
 from fastapi_azure_auth.user import User
+
 import models.models as models
 import schemas.schemas as schemas
 from auth import azure_scheme
 from dependencies import get_db
-from fastapi_cache.decorator import cache
-from fastapi_limiter.depends import RateLimiter
+from utils import build_seguimiento_workbook
 
 router = APIRouter(prefix="/stats", tags=["Estadísticas"])
 
 @router.get("/general/", response_model=schemas.StatsData, dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 @cache(expire=60)
-def get_general_stats( db: Session = Depends(get_db), user: User = Security(azure_scheme)):
+async def get_general_stats( db: Session = Depends(get_db), user: User = Security(azure_scheme)):
     
     total_auditorias = db.query(models.Auditoria).count()
 
@@ -37,4 +47,36 @@ def get_general_stats( db: Session = Depends(get_db), user: User = Security(azur
         por_semestre={f"{year}-{sem}": count for year, sem, count in semestre_stats},
         por_tema={tema: count for tema, count in tema_stats},
         por_estado_mejora={estado: count for estado, count in estado_mejora_stats},
+    )
+
+
+@router.get("/reporte-seguimiento/",dependencies=[Depends(RateLimiter(times=5, seconds=60))],)
+def get_seguimiento_report(
+    year: int,
+    db: Session = Depends(get_db),
+    user: User = Security(azure_scheme),
+):
+    if year <= 0:
+        raise HTTPException(status_code=400, detail="Año inválido")
+
+    auditorias = (
+        db.query(models.Auditoria)
+        .options(joinedload(models.Auditoria.mejoras))
+        .filter(extract("year", models.Auditoria.date_onbase) == year)
+        .order_by(models.Auditoria.date_onbase.asc(), models.Auditoria.id_aud.asc())
+        .all()
+    )
+
+    workbook = build_seguimiento_workbook(year, auditorias)
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    filename = f"001_CONTROL_Y_SEGUIMIENTO_{year}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
