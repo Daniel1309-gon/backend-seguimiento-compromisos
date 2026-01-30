@@ -21,12 +21,11 @@ router = APIRouter(
     )
 @cache(expire=5)
 def get_system_logs(skip: int = 0, 
-    limit: int = 10, 
     db: Session = Depends(get_db), 
     userAdmin: User = Depends(get_current_admin), 
     user = Security(azure_scheme)
     ):
-    logs = db.query(models.SystemLog).order_by(models.SystemLog.id.desc()).offset(skip).limit(limit).all()
+    logs = db.query(models.SystemLog).order_by(models.SystemLog.id.desc()).offset(skip).all()
     return logs
 
 @router.get("/is-admin/", dependencies=[Depends(RateLimiter(times=10, seconds=60))])

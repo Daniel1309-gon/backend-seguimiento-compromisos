@@ -25,7 +25,7 @@ def build_seguimiento_workbook(year: int, auditorias: list[Auditoria]) -> Workbo
     for col, width in col_widths.items():
         ws.column_dimensions[col].width = width
 
-    logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.png")
+    logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "logo.jpg")
     if os.path.exists(logo_path):
         img = Image(logo_path)
         img.width = 180

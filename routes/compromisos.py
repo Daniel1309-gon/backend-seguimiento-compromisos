@@ -153,7 +153,7 @@ def read_compromisos_pronto_vencimiento(
     compromisos = (
         db.query(
             models.Compromiso,
-            models.OpMejora.description,
+            models.OpMejora.description.label("op_description"),
             models.Auditoria.id_aud,
             models.Auditoria.topic,
             models.Auditoria.area,
@@ -162,10 +162,11 @@ def read_compromisos_pronto_vencimiento(
         .join(models.OpMejora, models.Compromiso.op_id == models.OpMejora.id_op)
         .join(models.Auditoria, models.OpMejora.aud_id == models.Auditoria.id_aud)
         .filter(models.Compromiso.estado == "En proceso")
-        .filter(models.Compromiso.deadline <= target_date)
+        .filter(models.Compromiso.deadline == target_date)
         .order_by(models.Compromiso.deadline.asc())
         .all()
     )
+
 
 
     return [

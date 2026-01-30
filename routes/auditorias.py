@@ -5,8 +5,7 @@ from fastapi_azure_auth.user import User
 import models.models as models
 import schemas.schemas as schemas
 from auth import azure_scheme
-from dependencies import get_db, get_current_admin, inject_current_user
-from fastapi_cache.decorator import cache
+from dependencies import get_db, inject_current_user
 from fastapi_limiter.depends import RateLimiter
 
 router = APIRouter(prefix="/auditorias", tags=["Auditorias"])
