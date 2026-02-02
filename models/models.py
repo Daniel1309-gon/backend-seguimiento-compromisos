@@ -7,6 +7,7 @@ class Auditor(Base):
 
     aud_user = Column(String(20), primary_key=True, index=True)
     aud_name = Column(String(40), nullable=False)
+    estado = Column(String(10), nullable=False, server_default=text("'Activo'"))
 
     auditorias = relationship("Auditoria", back_populates="auditor_rel")
     seguimientos = relationship("Seguimiento", back_populates="auditor_rel", cascade="all, delete-orphan")

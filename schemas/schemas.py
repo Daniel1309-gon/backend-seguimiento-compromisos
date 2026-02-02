@@ -55,6 +55,10 @@ class AuditorBase(BaseModel):
 class AuditorCreate(AuditorBase):
     pass
 
+
+class AuditorUpdate(BaseModel):
+    aud_name: str
+
 class Auditor(AuditorBase):
     auditorias: List[Auditoria] = []
 

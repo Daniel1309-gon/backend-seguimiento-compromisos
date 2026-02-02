@@ -6,6 +6,7 @@ from fastapi_azure_auth.user import User
 from database import SessionLocal
 from config import settings
 from auth import azure_scheme
+import models.models as models
 
 # Configuración de Admins
 ADMIN_EMAILS = [settings.ADMIN_USER_AUDITOR, settings.ADMIN_USER_PASANTE]
@@ -37,3 +38,18 @@ def inject_current_user(db: Session = Depends(get_db), user: User = Security(azu
         {'app_user': username}
     )
     return username
+
+
+def get_active_auditor(aud_user: str, db: Session = Depends(get_db)):
+    auditor = (
+        db.query(models.Auditor)
+        .filter(models.Auditor.aud_user == aud_user)
+        .filter(models.Auditor.estado == "Activo")
+        .first()
+    )
+    if not auditor:
+        raise HTTPException(
+            status_code=400,
+            detail="Auditor inválido",
+        )
+    return auditor
